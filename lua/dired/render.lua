@@ -1,4 +1,5 @@
 local M = {}
+M.info_providers_data = {}
 ---@class FileEntry
 ---@field name string
 ---@field type string
@@ -6,50 +7,11 @@ local M = {}
 local api = vim.api
 local ns = api.nvim_create_namespace("Dired")
 local fs = require("dired.fs")
+local util = require("dired.util")
+local info = require("dired.info")
 
 local function extmark(...)
     api.nvim_buf_set_extmark(0, ns, ...)
-end
-
----@param size number
----@return string
-local function format_size(size)
-    if size < 1024 then
-        return string.format("%dB", size)
-    end
-
-    local units = {
-        { limit = 1024 * 1024 * 1024 * 1024, unit = "T" },
-        { limit = 1024 * 1024 * 1024, unit = "G" },
-        { limit = 1024 * 1024, unit = "M" },
-        { limit = 1024, unit = "K" },
-    }
-
-    for _, unit in ipairs(units) do
-        if size > unit.limit then
-            local converted = size / unit.limit
-            return string.format("%.2f%s", converted, unit.unit)
-        end
-    end
-
-    -- unreachable
-    return "NaN"
-end
-
-local function friendly_time(timestamp)
-    local now = os.time()
-    local diff = now - timestamp
-    if diff < 60 then
-        return string.format("%d secs ago", diff)
-    elseif diff < 3600 then
-        return string.format("%d mins ago", math.floor(diff / 60))
-    elseif diff < 86400 then
-        return string.format("%d hours ago", math.floor(diff / 3600))
-    elseif diff < 86400 * 14 then -- two weeks show "X days ago"
-        return string.format("%d days ago", math.floor(diff / 86400))
-    else
-        return os.date("%Y-%-m-%-d", timestamp)
-    end
 end
 
 ---@param str string
@@ -64,8 +26,10 @@ end
 function M.draw(dir, files)
     -- clear buffer
     api.nvim_buf_set_lines(0, 0, -1, false, {})
-    local sizes, size_maxlen = {}, 0
-    local modts, modt_maxlen = {}, 0
+    local providers = util.getopt("info")
+    for _, provider in ipairs(providers) do
+        M.info_providers_data[provider] = { len = 0 }
+    end
 
     for line, f in ipairs(files) do
         local shown = f.type == "directory" and f.name .. "/" or f.name
@@ -92,26 +56,29 @@ function M.draw(dir, files)
             })
         end
 
-        -- collect entry size
-        local sz = format_size(fs.size(dir, f.name))
-        table.insert(sizes, sz)
-        size_maxlen = math.max(size_maxlen, #sz)
-
-        -- collect mod time
-        local time = friendly_time(fs.modt(dir, f.name))
-        table.insert(modts, time)
-        modt_maxlen = math.max(modt_maxlen, #time)
+        -- collect info
+        for _, provider in ipairs(providers) do
+            local data = info[provider].show(dir, f.name)
+            table.insert(M.info_providers_data[provider], data)
+            M.info_providers_data[provider].len =
+                math.max(M.info_providers_data[provider].len, #data)
+        end
     end
 
-    _G._dired_stc_size = function(line)
-        return pad(sizes[line] or "", size_maxlen + 1)
-    end
-    _G._dired_stc_mtime = function(line)
-        return pad(modts[line] or "", modt_maxlen + 2)
+    -- hook up statuscolumn with info provider
+    local stc = ""
+    for _, provider in ipairs(providers) do
+        _G["_dired_stc_" .. provider] = function(line)
+            return pad(
+                M.info_providers_data[provider][line] or "",
+                M.info_providers_data[provider].len + 1
+            )
+        end
+        stc = stc
+            .. ("%%#%s#%%{v:lua._dired_stc_%s(v:lnum)}%%*"):format(info[provider].hlgroup, provider)
     end
 
-    vim.wo.statuscolumn = "%#DiredDate#%{v:lua._dired_stc_mtime(v:lnum)}%*"
-        .. "%#DiredSize#%{v:lua._dired_stc_size(v:lnum)}%*"
+    vim.wo.statuscolumn = stc
 
     -- delete first line
     api.nvim_buf_set_lines(0, 0, 1, true, {})

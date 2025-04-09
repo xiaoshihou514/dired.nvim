@@ -21,8 +21,14 @@ local function isdir(line)
 end
 
 function M.create_bindings()
+    M.create_window_bindings()
     M.create_nav_bindings()
     M.create_edit_bindings()
+end
+
+function M.create_window_bindings()
+    map("n", "q", vim.cmd.quit)
+    map("n", "<Esc>", vim.cmd.quit)
 end
 
 function M.create_nav_bindings()
@@ -61,7 +67,10 @@ function M.create_nav_bindings()
 end
 
 function M.create_edit_bindings()
-    disable("n", "q")
+    local disabled = { "i", "a", "A", "s", "S", "R" }
+    for _, k in ipairs(disabled) do
+        disable("n", k)
+    end
 
     map("n", "o", function()
         return "Go"

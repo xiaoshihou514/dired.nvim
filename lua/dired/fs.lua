@@ -1,6 +1,22 @@
 ---@diagnostic disable: undefined-field
 local M = {}
 
+local ffi = require("ffi")
+ffi.cdef([[
+typedef unsigned int __uid_t;
+typedef unsigned int __gid_t;
+struct passwd {
+  char *pw_name;
+  char *pw_passwd;
+  __uid_t pw_uid;
+  __gid_t pw_gid;
+  char *pw_gecos;
+  char *pw_dir;	
+  char *pw_shell;
+};
+struct passwd *getpwuid(__uid_t);
+]])
+
 local uv = vim.uv
 local sep = uv.os_uname().sysname == "Windows" and "\\" or "/"
 
@@ -61,6 +77,20 @@ end
 ---@return number
 function M.modt(dir, name)
     return uv.fs_stat(concat(dir, name)).mtime.sec
+end
+
+---@param dir string
+---@param name string
+---@return number
+function M.perms(dir, name)
+    return uv.fs_stat(concat(dir, name)).mode
+end
+
+---@param dir string
+---@param name string
+---@return string
+function M.user(dir, name)
+    return ffi.string(ffi.C.getpwuid(uv.fs_stat(concat(dir, name)).uid).pw_name)
 end
 
 return M

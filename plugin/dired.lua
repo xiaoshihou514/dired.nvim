@@ -43,19 +43,20 @@ api.nvim_create_autocmd("BufEnter", {
 })
 
 local highlights = {
-    DiredDirectory = { link = "Keyword", bold = true },
-    DiredSymlink = { link = "Speacial", bold = true },
+    DiredDirectory = { link = "Directory" },
+    DiredSymlink = { link = "NonText" },
     DiredExecutable = { link = "String" },
-    DiredPermissions = { fg = "#4c566a" },
-    DiredSize = { fg = "#8fbcbb" },
-    DiredUser = { fg = "#d08770" },
-    DiredDate = { fg = "#4c566a" },
-    DiredPrompt = { fg = "#a3be8c" },
-    DiredTitle = { link = "Function" },
-    DiredShort = { link = "DiredPermissions" },
-    DiredMatch = { fg = "#268bd2", bold = true },
+    DiredPermissions = { link = "Special" },
+    DiredSize = { link = "String" },
+    DiredUser = { link = "Function" },
+    DiredDate = { link = "Keyword" },
+    -- DiredPrompt = { fg = "#a3be8c" },
+    -- DiredTitle = { link = "Function" },
+    -- DiredShort = { link = "DiredPermissions" },
+    -- DiredMatch = { fg = "#268bd2", bold = true },
 }
 
 for name, attrs in pairs(highlights) do
-    vim.api.nvim_set_hl(0, name, vim.tbl_extend("keep", attrs, { default = true }))
+    attrs.default = true
+    vim.api.nvim_set_hl(0, name, attrs)
 end

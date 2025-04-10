@@ -3,8 +3,7 @@ local M = {}
 ---@param opt string
 function M.getopt(opt)
     local default = {
-        -- info = { "permission", "size", "user", "mtime" },
-        info = { "size", "mtime" },
+        info = { "permissions", "size", "user", "mtime" },
     }
     if
         not vim.g.dired_config

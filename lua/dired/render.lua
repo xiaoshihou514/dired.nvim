@@ -58,7 +58,7 @@ function M.draw(dir, files)
 
         -- collect info
         for _, provider in ipairs(providers) do
-            local data = info[provider].show(dir, f.name)
+            local data = info[provider].show(dir, shown)
             table.insert(M.info_providers_data[provider], data)
             M.info_providers_data[provider].len =
                 math.max(M.info_providers_data[provider].len, #data)
@@ -68,14 +68,19 @@ function M.draw(dir, files)
     -- hook up statuscolumn with info provider
     local stc = ""
     for _, provider in ipairs(providers) do
-        _G["_dired_stc_" .. provider] = function(line)
-            return pad(
-                M.info_providers_data[provider][line] or "",
-                M.info_providers_data[provider].len + 1
-            )
+        _G["_dired_stc_" .. provider] = function(line, vnum)
+            return vnum == 0
+                    and pad(
+                        M.info_providers_data[provider][line] or "",
+                        M.info_providers_data[provider].len + 2
+                    )
+                or ""
         end
         stc = stc
-            .. ("%%#%s#%%{v:lua._dired_stc_%s(v:lnum)}%%*"):format(info[provider].hlgroup, provider)
+            .. ("%%#%s#%%{v:lua._dired_stc_%s(v:lnum,v:virtnum)}%%*"):format(
+                info[provider].hlgroup,
+                provider
+            )
     end
 
     vim.wo.statuscolumn = stc

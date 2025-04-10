@@ -4,6 +4,16 @@ local M = {}
 function M.getopt(opt)
     local default = {
         info = { "permissions", "size", "user", "mtime" },
+        mapping = {
+            edit = "<cr>",
+            split = "<C-o>",
+            vsplit = "<C-x>",
+            tabe = "<C-t>",
+            edit_prefix = "g",
+            split_prefix = "gs",
+            vsplit_prefix = "gv",
+            tabe_prefix = "gt",
+        },
     }
     if
         not vim.g.dired_config

@@ -50,9 +50,9 @@ local highlights = {
     DiredSize = { link = "String" },
     DiredUser = { link = "Function" },
     DiredDate = { link = "Keyword" },
+    DiredHints = { link = "Comment" },
     -- DiredPrompt = { fg = "#a3be8c" },
     -- DiredTitle = { link = "Function" },
-    -- DiredShort = { link = "DiredPermissions" },
     -- DiredMatch = { fg = "#268bd2", bold = true },
 }
 

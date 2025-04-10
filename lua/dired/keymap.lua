@@ -1,10 +1,13 @@
 local M = {}
 local api = vim.api
 local fs = require("dired.fs")
+local util = require("dired.util")
 local render_data = require("dired.render").info_providers_data
-local refresh = require("dired").refresh
+local getline = api.nvim_get_current_line
 local autocmd = api.nvim_create_autocmd
-local create_file_disabled_keys = { "j", "k", "gj", "gk" }
+local refresh = require("dired").refresh
+
+local create_file_disabled_keys = { "<Up>", "<Down>", "<PageUp>", "<PageDown>" }
 
 local function map(mode, lhs, rhs, opts)
     opts = opts or {}
@@ -24,11 +27,6 @@ end
 
 local function enable(mode, key)
     unmap(mode, key)
-end
-
-local function getline()
-    local row, _ = unpack(api.nvim_win_get_cursor(0))
-    return unpack(api.nvim_buf_get_lines(0, row - 1, row, true))
 end
 
 local function isdir(line)
@@ -63,8 +61,10 @@ function M.create_bindings()
 end
 
 function M.create_nav_bindings()
+    local mapping = util.getopt("mapping")
+
     -- navigation bindings
-    map("n", "<cr>", function()
+    map("n", mapping.edit, function()
         local line = getline()
         if isdir(line) then
             vim.cmd.lcd(line)
@@ -75,12 +75,7 @@ function M.create_nav_bindings()
         end
     end)
 
-    map("n", "-", function()
-        vim.cmd.lcd("..")
-        require("dired").refresh()
-    end)
-
-    map("n", "<C-x>", function()
+    map("n", mapping.vsplit, function()
         local line = getline()
         if not isdir(line) then
             api.nvim_win_close(0, true)
@@ -88,7 +83,7 @@ function M.create_nav_bindings()
         end
     end)
 
-    map("n", "<C-o>", function()
+    map("n", mapping.split, function()
         local line = getline()
         if not isdir(line) then
             api.nvim_win_close(0, true)
@@ -96,17 +91,22 @@ function M.create_nav_bindings()
         end
     end)
 
-    map("n", "<C-t>", function()
+    map("n", mapping.tabe, function()
         local line = getline()
         if not isdir(line) then
             api.nvim_win_close(0, true)
             vim.cmd.tabedit(line)
         end
     end)
+
+    map("n", "-", function()
+        vim.cmd.lcd("..")
+        require("dired").refresh()
+    end)
 end
 
 function M.create_edit_bindings()
-    local disabled = { "i", "a", "A", "s", "S", "R" }
+    local disabled = { "i", "a", "A", "s", "S", "R", "O" }
     for _, k in ipairs(disabled) do
         disable("n", k)
     end
@@ -130,7 +130,7 @@ function M.create_edit_bindings()
         return "o"
     end, { expr = true })
 
-    -- rename, select, move, delete, paste, fuzzy search
+    -- rename, select, move, delete, paste
 end
 
 return M

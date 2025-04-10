@@ -5,10 +5,18 @@ M.info_providers_data = {}
 ---@field type string
 
 local api = vim.api
-local ns = api.nvim_create_namespace("Dired")
 local fs = require("dired.fs")
 local util = require("dired.util")
 local info = require("dired.info")
+
+local ns = api.nvim_create_namespace("Dired")
+-- stylua: ignore start
+local hints = {
+    "a", "s", "d", "f", "g", "h", "j", "k", "l", ";", "'", "q", "w",
+    "e", "r", "t", "z", "x", "c", "v", "y", "u", "i", "o", "p", "b",
+    "n", "m",
+}
+-- stylua: ignore end
 
 local function extmark(...)
     api.nvim_buf_set_extmark(0, ns, ...)
@@ -24,8 +32,15 @@ end
 ---@param dir string
 ---@param files FileEntry[]
 function M.draw(dir, files)
+    local mapping = util.getopt("mapping")
+
     -- clear buffer
     api.nvim_buf_set_lines(0, 0, -1, false, {})
+    for _, e in ipairs(api.nvim_buf_get_extmarks(0, ns, 0, -1, {})) do
+        api.nvim_buf_del_extmark(0, ns, e[1])
+    end
+
+    -- init provider data
     local providers = util.getopt("info")
     for _, provider in ipairs(providers) do
         M.info_providers_data[provider] = { len = 0 }
@@ -62,6 +77,34 @@ function M.draw(dir, files)
             table.insert(M.info_providers_data[provider], data)
             M.info_providers_data[provider].len =
                 math.max(M.info_providers_data[provider].len, #data)
+        end
+    end
+
+    -- create quick keymaps if all entries are within viewport
+    if #files < api.nvim_win_get_height(0) and #files < #hints then
+        for i = 1, #files do
+            extmark(i, 0, {
+                virt_text_pos = "right_align",
+                virt_text = { { "[" .. hints[i] .. "]", "DiredHints" } },
+            })
+        end
+
+        for key, binding in pairs({
+            [mapping.edit_prefix] = mapping.edit,
+            [mapping.split_prefix] = mapping.split,
+            [mapping.vsplit_prefix] = mapping.vsplit,
+            [mapping.tabe_prefix] = mapping.tabe,
+        }) do
+            vim.keymap.set("n", key, function()
+                local k = vim.fn.getchar(-1, { number = false })
+                for i, c in ipairs(hints) do
+                    if c == k then
+                        api.nvim_win_set_cursor(0, { i, 0 })
+                        api.nvim_input(binding)
+                        return
+                    end
+                end
+            end, { buffer = true })
         end
     end
 

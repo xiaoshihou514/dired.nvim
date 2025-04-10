@@ -1,5 +1,10 @@
 local M = {}
 local api = vim.api
+local fs = require("dired.fs")
+local render_data = require("dired.render").info_providers_data
+local refresh = require("dired").refresh
+local autocmd = api.nvim_create_autocmd
+local create_file_disabled_keys = { "j", "k", "gj", "gk" }
 
 local function map(mode, lhs, rhs, opts)
     opts = opts or {}
@@ -7,8 +12,18 @@ local function map(mode, lhs, rhs, opts)
     vim.keymap.set(mode, lhs, rhs, opts)
 end
 
+local function unmap(mode, lhs, opts)
+    opts = opts or {}
+    opts.buffer = true
+    vim.keymap.del(mode, lhs, opts)
+end
+
 local function disable(mode, key)
     map(mode, key, "<Nop>")
+end
+
+local function enable(mode, key)
+    unmap(mode, key)
 end
 
 local function getline()
@@ -20,15 +35,31 @@ local function isdir(line)
     return vim.endswith(line, "/")
 end
 
-function M.create_bindings()
-    M.create_window_bindings()
-    M.create_nav_bindings()
-    M.create_edit_bindings()
+local function create_file()
+    local line = getline()
+    vim.print(line)
+    fs.create(line)
+    vim.defer_fn(function()
+        refresh()
+        -- put cursor on newly created entry
+        for lnum, l in ipairs(api.nvim_buf_get_lines(0, 0, -1, false)) do
+            if l == fs.imm_subpath(line) then
+                api.nvim_win_set_cursor(0, { lnum, 0 })
+                api.nvim_input("zz")
+            end
+        end
+    end, 10)
+
+    for _, k in ipairs(create_file_disabled_keys) do
+        enable("i", k)
+    end
+    api.nvim_input("<Esc>")
 end
 
-function M.create_window_bindings()
+function M.create_bindings()
     map("n", "q", vim.cmd.quit)
-    map("n", "<Esc>", vim.cmd.quit)
+    M.create_nav_bindings()
+    M.create_edit_bindings()
 end
 
 function M.create_nav_bindings()
@@ -49,7 +80,7 @@ function M.create_nav_bindings()
         require("dired").refresh()
     end)
 
-    map("n", "<C-v>", function()
+    map("n", "<C-x>", function()
         local line = getline()
         if not isdir(line) then
             api.nvim_win_close(0, true)
@@ -57,11 +88,19 @@ function M.create_nav_bindings()
         end
     end)
 
-    map("n", "<C-s>", function()
+    map("n", "<C-o>", function()
         local line = getline()
         if not isdir(line) then
             api.nvim_win_close(0, true)
             vim.cmd.split(line)
+        end
+    end)
+
+    map("n", "<C-t>", function()
+        local line = getline()
+        if not isdir(line) then
+            api.nvim_win_close(0, true)
+            vim.cmd.tabedit(line)
         end
     end)
 end
@@ -73,8 +112,25 @@ function M.create_edit_bindings()
     end
 
     map("n", "o", function()
-        return "Go"
+        local row, _ = unpack(api.nvim_win_get_cursor(0))
+        for _, v in pairs(render_data) do
+            table.insert(v, row + 1, "")
+        end
+
+        autocmd("ModeChanged", {
+            pattern = "i:*",
+            once = true,
+            callback = create_file,
+        })
+        map("i", "<cr>", "<Esc>")
+        for _, k in ipairs(create_file_disabled_keys) do
+            disable("i", k)
+        end
+
+        return "o"
     end, { expr = true })
+
+    -- rename, select, move, delete, paste, fuzzy search
 end
 
 return M

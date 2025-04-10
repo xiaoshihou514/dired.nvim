@@ -24,6 +24,14 @@ local function concat(dir, f)
     return dir .. sep .. f
 end
 
+local function create_file(fname)
+    uv.fs_open(fname, "w", 420, function(_, fd)
+        if fd then
+            uv.fs_close(fd, function() end)
+        end
+    end)
+end
+
 ---@param dir string
 ---@return FileEntry[]
 function M.list(dir)
@@ -91,6 +99,27 @@ end
 ---@return string
 function M.user(dir, name)
     return ffi.string(ffi.C.getpwuid(uv.fs_stat(concat(dir, name)).uid).pw_name)
+end
+
+---@param name string
+function M.create(name)
+    local dir = vim.fn.getcwd()
+
+    local subpaths = vim.split(name, sep)
+    local file = table.remove(subpaths, #subpaths)
+    local acc = ""
+    for _, subdir in ipairs(subpaths) do
+        acc = acc .. subdir .. sep
+        assert(uv.fs_mkdir(concat(dir, acc), 493))
+    end
+    if file ~= "" then
+        create_file(concat(dir, name))
+    end
+end
+
+---@param name string
+function M.imm_subpath(name)
+    return name:sub(1, (name:find(sep) or -2) + 1)
 end
 
 return M

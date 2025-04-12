@@ -33,6 +33,15 @@ local function isdir(line)
     return vim.endswith(line, "/")
 end
 
+local function open(file)
+    local binfts = util.getopt("binfts")
+    if vim.tbl_contains(binfts, vim.fn.fnamemodify(file, ":e")) then
+        vim.ui.open(file)
+    else
+        vim.cmd.edit(file)
+    end
+end
+
 local function create_file()
     local line = getline()
     vim.print(line)
@@ -65,13 +74,13 @@ function M.create_nav_bindings()
 
     -- navigation bindings
     map("n", mapping.edit, function()
-        local line = getline()
-        if isdir(line) then
-            vim.cmd.lcd(line)
+        local entry = fs.concat(vim.fn.getcwd(), getline())
+        if isdir(entry) then
+            vim.cmd.lcd(entry)
             require("dired").refresh()
         else
             api.nvim_win_close(0, true)
-            vim.cmd.edit(line)
+            open(entry)
         end
     end)
 

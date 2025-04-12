@@ -4,6 +4,7 @@ local M = {}
 function M.getopt(opt)
     local default = {
         info = { "permissions", "size", "user", "mtime" },
+        binfts = { "pdf", "mp4", "mkv", "png", "svg" },
         mapping = {
             edit = "<cr>",
             split = "<C-o>",

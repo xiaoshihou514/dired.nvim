@@ -10,6 +10,7 @@ function M.getopt(opt)
             split = "<C-o>",
             vsplit = "<C-x>",
             tabe = "<C-t>",
+
             edit_prefix = "g",
             split_prefix = "gs",
             vsplit_prefix = "gv",

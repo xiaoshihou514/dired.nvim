@@ -2,7 +2,8 @@ local M = {}
 local api = vim.api
 local fs = require("dired.fs")
 local util = require("dired.util")
-local render_data = require("dired.render").info_providers_data
+local render = require("dired.render")
+local render_data = render.info_providers_data
 local getline = api.nvim_get_current_line
 local autocmd = api.nvim_create_autocmd
 local refresh = require("dired").refresh
@@ -56,10 +57,12 @@ local function create_file()
         for _, v in pairs(render_data) do
             table.remove(v, row)
         end
+        render.update_winbar()
         return
     end
 
     fs.create(line)
+    -- HACK
     vim.defer_fn(function()
         refresh()
         -- put cursor on newly created entry
@@ -74,6 +77,7 @@ local function create_file()
     for _, k in ipairs(create_file_disabled_keys) do
         enable("i", k)
     end
+    render.update_winbar()
     api.nvim_input("<Esc>")
 end
 
@@ -165,6 +169,7 @@ function M.create_edit_bindings()
             disable("i", k)
         end
 
+        render.update_winbar("Insert")
         return "o"
     end, { expr = true })
 

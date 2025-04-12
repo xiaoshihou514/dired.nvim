@@ -7,7 +7,12 @@ local getline = api.nvim_get_current_line
 local autocmd = api.nvim_create_autocmd
 local refresh = require("dired").refresh
 
-local create_file_disabled_keys = { "<Up>", "<Down>", "<PageUp>", "<PageDown>" }
+-- stylua: ignore start
+local create_file_disabled_keys = {
+    "<Up>", "<Down>", "<PageUp>",
+    "<PageDown>", "<C-c>", "<C-[>"
+}
+-- stylua: ignore end
 
 local function map(mode, lhs, rhs, opts)
     opts = opts or {}
@@ -44,7 +49,16 @@ end
 
 local function create_file()
     local line = getline()
-    vim.print(line)
+    if line == "" then
+        -- restore prev data
+        local row, _ = unpack(api.nvim_win_get_cursor(0))
+        api.nvim_buf_set_lines(0, row - 1, row, true, {})
+        for _, v in pairs(render_data) do
+            table.remove(v, row)
+        end
+        return
+    end
+
     fs.create(line)
     vim.defer_fn(function()
         refresh()
@@ -132,6 +146,21 @@ function M.create_edit_bindings()
             callback = create_file,
         })
         map("i", "<cr>", "<Esc>")
+
+        local function wrap(key)
+            return function()
+                local _, col = unpack(api.nvim_win_get_cursor(0))
+                if col == 0 then
+                    return ""
+                else
+                    return key
+                end
+            end
+        end
+        for _, k in ipairs({ "<BS>", "<C-h>", "<C-w>" }) do
+            map("i", k, wrap(k), { expr = true })
+        end
+
         for _, k in ipairs(create_file_disabled_keys) do
             disable("i", k)
         end

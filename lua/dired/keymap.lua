@@ -6,12 +6,17 @@ local render = require("dired.render")
 local render_data = render.info_providers_data
 local getline = api.nvim_get_current_line
 local autocmd = api.nvim_create_autocmd
+local join = vim.fs.joinpath
 local refresh = require("dired").refresh
 
 -- stylua: ignore start
 local create_file_disabled_keys = {
     "<Up>", "<Down>", "<PageUp>",
     "<PageDown>", "<C-c>", "<C-[>"
+}
+local normal_disabled = {
+    "i", "a", "A", "s", "S", "R", "O",
+    "r", "o", "<C-a>", "<C-x>", "u"
 }
 -- stylua: ignore end
 
@@ -46,6 +51,30 @@ local function open(file)
     else
         vim.cmd.edit(file)
     end
+end
+
+local function index(xs, x)
+    local res = -1
+    for i, v in ipairs(xs) do
+        if v == x then
+            res = i
+            break
+        end
+    end
+    return res - 1
+end
+
+-- modified from runtime/lua/vim/lsp/buf.lua
+---@return integer, integer
+function M.range_from_selection()
+    local start = vim.fn.getpos("v")
+    local end_ = vim.fn.getpos(".")
+    local start_row = start[2]
+    local end_row = end_[2]
+    if end_row < start_row then
+        start_row, end_row = end_row, start_row
+    end
+    return start_row, end_row
 end
 
 local function exit_limited_insert_mode()
@@ -141,7 +170,7 @@ end
 function M.create_nav_bindings(mapping)
     -- navigation bindings
     map("n", mapping.edit, function()
-        local entry = fs.concat(vim.fn.getcwd(), getline())
+        local entry = join(vim.fn.getcwd(), getline())
         if isdir(entry) then
             vim.cmd.lcd(entry)
             require("dired").refresh()
@@ -175,15 +204,14 @@ function M.create_nav_bindings(mapping)
         end
     end)
 
-    map("n", mapping.create, function()
+    map("n", mapping.up, function()
         vim.cmd.lcd("..")
         require("dired").refresh()
     end)
 end
 
 function M.create_edit_bindings(mapping)
-    local disabled = { "i", "a", "A", "s", "S", "R", "O", "r", "o" }
-    for _, k in ipairs(disabled) do
+    for _, k in ipairs(normal_disabled) do
         disable("n", k)
     end
 
@@ -206,7 +234,52 @@ function M.create_edit_bindings(mapping)
         return "0v$h<C-g>"
     end, { expr = true })
 
-    -- select, move, delete, paste
+    map({ "n", "x" }, mapping.select, function()
+        local cwd = vim.fn.getcwd()
+        local selected = {}
+        local srow, _ = unpack(api.nvim_win_get_cursor(0))
+        if vim.fn.mode() ~= "n" then
+            local s, e = M.range_from_selection()
+            srow = s
+            selected = api.nvim_buf_get_lines(0, s - 1, e, true)
+            api.nvim_input("<Esc>")
+        else
+            selected = { getline() }
+        end
+
+        local t = vim.g._dired_selected or {}
+        for _, e in ipairs(selected) do
+            local path = join(cwd, e)
+            if not t[path] then
+                -- select
+                t[path] = true
+
+                render.sel_extmark(index(selected, e) + srow - 1, 0, {
+                    end_col = #e,
+                    hl_group = "DiredSelected",
+                })
+            else
+                -- unselect
+                t[path] = nil
+
+                local row = index(selected, e) + srow
+                local id = unpack(
+                    api.nvim_buf_get_extmarks(
+                        0,
+                        render.selns,
+                        { row - 1, 0 },
+                        { row + 1, 0 },
+                        { limit = 1 }
+                    )[1]
+                )
+                ---@diagnostic disable-next-line: param-type-mismatch
+                api.nvim_buf_del_extmark(0, render.selns, id)
+            end
+        end
+        vim.g._dired_selected = t
+    end)
+
+    -- move, delete, paste
 end
 
 return M

@@ -18,6 +18,7 @@ struct passwd *getpwuid(__uid_t);
 ]])
 
 local uv = vim.uv
+local join = vim.fs.joinpath
 local sep = uv.os_uname().sysname == "Windows" and "\\" or "/"
 
 local function create_file(fname)
@@ -26,13 +27,6 @@ local function create_file(fname)
             uv.fs_close(fd, function() end)
         end
     end)
-end
-
----@param dir string
----@param f string
----@return string
-function M.concat(dir, f)
-    return dir .. sep .. f
 end
 
 ---@param dir string
@@ -67,7 +61,7 @@ end
 ---@param name string
 ---@return string
 function M.linkdest(dir, name)
-    local path = assert(uv.fs_readlink(M.concat(dir, name)))
+    local path = assert(uv.fs_readlink(join(dir, name)))
     return vim.startswith(path, "/") and path or "/" .. path
 end
 
@@ -75,7 +69,7 @@ end
 ---@param name string
 ---@return number
 function M.size(dir, name)
-    local path = M.concat(dir, name)
+    local path = join(dir, name)
     local fd = uv.fs_stat(path)
     if not fd then
         fd = uv.fs_stat(assert(uv.fs_readlink(path))) or { size = 0 }
@@ -87,21 +81,21 @@ end
 ---@param name string
 ---@return number
 function M.modt(dir, name)
-    return uv.fs_stat(M.concat(dir, name)).mtime.sec
+    return uv.fs_stat(join(dir, name)).mtime.sec
 end
 
 ---@param dir string
 ---@param name string
 ---@return number
 function M.perms(dir, name)
-    return uv.fs_stat(M.concat(dir, name)).mode
+    return uv.fs_stat(join(dir, name)).mode
 end
 
 ---@param dir string
 ---@param name string
 ---@return string
 function M.user(dir, name)
-    return ffi.string(ffi.C.getpwuid(uv.fs_stat(M.concat(dir, name)).uid).pw_name)
+    return ffi.string(ffi.C.getpwuid(uv.fs_stat(join(dir, name)).uid).pw_name)
 end
 
 ---@param name string
@@ -113,10 +107,10 @@ function M.create(name)
     local acc = ""
     for _, subdir in ipairs(subpaths) do
         acc = acc .. subdir .. sep
-        assert(uv.fs_mkdir(M.concat(dir, acc), 493))
+        assert(uv.fs_mkdir(join(dir, acc), 493))
     end
     if file ~= "" then
-        create_file(M.concat(dir, name))
+        create_file(join(dir, name))
     end
 end
 
@@ -129,7 +123,7 @@ end
 ---@param from string
 ---@param to string
 function M.rename(dir, from, to)
-    uv.fs_rename(M.concat(dir, from), M.concat(dir, to))
+    uv.fs_rename(join(dir, from), join(dir, to))
 end
 
 return M

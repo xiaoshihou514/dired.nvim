@@ -20,6 +20,7 @@ function M.getopt(opt)
 
             create = "o",
             rename = "r",
+            select = " ",
         },
     }
     if

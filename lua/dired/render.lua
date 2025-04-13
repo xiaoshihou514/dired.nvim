@@ -1,5 +1,7 @@
 local M = {}
 M.info_providers_data = {}
+M.ns = vim.api.nvim_create_namespace("Dired")
+M.selns = vim.api.nvim_create_namespace("DiredSelected")
 ---@class FileEntry
 ---@field name string
 ---@field type string
@@ -9,7 +11,6 @@ local fs = require("dired.fs")
 local util = require("dired.util")
 local info = require("dired.info")
 
-local ns = api.nvim_create_namespace("Dired")
 -- stylua: ignore start
 local hints = {
     "a", "s", "d", "f", "g", "h", "j", "k", "l", ";", "'", "q", "w",
@@ -18,15 +19,19 @@ local hints = {
 }
 -- stylua: ignore end
 
-local function extmark(...)
-    api.nvim_buf_set_extmark(0, ns, ...)
-end
-
 ---@param str string
 ---@param len number
 ---@return string
 local function pad(str, len)
     return str .. string.rep(" ", len - #str)
+end
+
+function M.extmark(...)
+    api.nvim_buf_set_extmark(0, M.ns, ...)
+end
+
+function M.sel_extmark(...)
+    api.nvim_buf_set_extmark(0, M.selns, ...)
 end
 
 ---@param mode string?
@@ -52,11 +57,12 @@ end
 ---@param files FileEntry[]
 function M.draw(dir, files)
     local mapping = util.getopt("mapping")
+    local cwd = vim.fn.getcwd()
 
     -- clear buffer
     api.nvim_buf_set_lines(0, 0, -1, false, {})
-    for _, e in ipairs(api.nvim_buf_get_extmarks(0, ns, 0, -1, {})) do
-        api.nvim_buf_del_extmark(0, ns, e[1])
+    for _, e in ipairs(api.nvim_buf_get_extmarks(0, M.ns, 0, -1, {})) do
+        api.nvim_buf_del_extmark(0, M.ns, e[1])
     end
 
     -- init provider data
@@ -71,22 +77,32 @@ function M.draw(dir, files)
 
         if f.type == "directory" then
             -- apply directory highlight
-            extmark(line, 0, {
+            M.extmark(line, 0, {
                 end_row = line,
                 end_col = #shown,
                 hl_group = "DiredDirectory",
             })
         elseif f.type == "link" then
             -- apply symlink highlight
-            extmark(line, 0, {
+            M.extmark(line, 0, {
                 end_row = line,
                 end_col = #shown,
                 hl_group = "DiredSymlink",
             })
 
-            extmark(line, #shown, {
+            M.extmark(line, #shown, {
                 virt_text = { { "-> ", "Normal" }, { fs.linkdest(dir, f.name), "DiredSymlink" } },
                 invalidate = true,
+            })
+        end
+
+        -- selection indicator
+        local path = vim.fs.joinpath(cwd, shown)
+        if vim.fn.index(vim.g._dired_selected or {}, path) >= 0 then
+            -- selected
+            M.extmark(line, 0, {
+                end_col = #shown,
+                hl_group = "DiredSelected",
             })
         end
 
@@ -102,7 +118,7 @@ function M.draw(dir, files)
     -- create quick keymaps if all entries are within viewport
     if #files < api.nvim_win_get_height(0) and #files < #hints then
         for i = 1, #files do
-            extmark(i, 0, {
+            M.extmark(i, 0, {
                 virt_text_pos = "right_align",
                 virt_text = { { "[" .. hints[i] .. "]", "DiredHints" } },
             })
@@ -153,11 +169,12 @@ function M.draw(dir, files)
             )
     end
 
+    -- delete first line to account for off by 1 error
+    api.nvim_buf_set_lines(0, 0, 1, true, {})
+
+    -- hook up info status, winbar and title
     vim.wo.statuscolumn = stc
     M.update_mode()
-
-    -- delete first line
-    api.nvim_buf_set_lines(0, 0, 1, true, {})
 end
 
 return M

@@ -56,8 +56,7 @@ local highlights = {
     DiredDate = { link = "Keyword" },
     DiredHints = { link = "Comment" },
     DiredMode = { link = "ModeMsg" },
-    -- DiredPrompt = { fg = "#a3be8c" },
-    -- DiredMatch = { fg = "#268bd2", bold = true },
+    DiredSelected = { link = "Visual" },
 }
 
 for name, attrs in pairs(highlights) do

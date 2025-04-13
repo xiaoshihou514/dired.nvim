@@ -15,10 +15,13 @@ function M.open(dir)
         col = pad_side,
         height = height,
         width = width,
-        border = "single",
     })
     api.nvim_command("silent! lcd " .. dir)
     vim.bo.ft = "dired"
+end
+
+function M.tutor()
+    M.open(vim.fs.dirname(vim.fn.tempname()))
 end
 
 function M.refresh()

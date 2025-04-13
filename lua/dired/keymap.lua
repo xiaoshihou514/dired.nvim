@@ -52,7 +52,7 @@ local function exit_limited_insert_mode()
     for _, k in ipairs(create_file_disabled_keys) do
         enable("i", k)
     end
-    render.update_winbar()
+    render.update_mode()
     api.nvim_input("<Esc>")
 end
 
@@ -65,7 +65,7 @@ local function create_file()
         for _, v in pairs(render_data) do
             table.remove(v, row)
         end
-        render.update_winbar()
+        render.update_mode()
         return
     end
 
@@ -93,7 +93,7 @@ local function rename_file(from)
         if line == "" then
             local row, _ = unpack(api.nvim_win_get_cursor(0))
             api.nvim_buf_set_lines(0, row - 1, row, true, { from })
-            render.update_winbar()
+            render.update_mode()
             return
         end
 
@@ -182,7 +182,7 @@ function M.create_nav_bindings(mapping)
 end
 
 function M.create_edit_bindings(mapping)
-    local disabled = { "i", "a", "A", "s", "S", "R", "O" }
+    local disabled = { "i", "a", "A", "s", "S", "R", "O", "r", "o" }
     for _, k in ipairs(disabled) do
         disable("n", k)
     end
@@ -195,14 +195,14 @@ function M.create_edit_bindings(mapping)
 
         prepare_limited_insert_mode(create_file)
 
-        render.update_winbar("Insert")
+        render.update_mode("INSERT")
         return "o"
     end, { expr = true })
 
     map("n", mapping.rename, function()
         prepare_limited_insert_mode(rename_file(getline()))
 
-        render.update_winbar("Rename")
+        render.update_mode("RENAME")
         return "0v$h<C-g>"
     end, { expr = true })
 

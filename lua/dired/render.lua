@@ -30,12 +30,22 @@ local function pad(str, len)
 end
 
 ---@param mode string?
-function M.update_winbar(mode)
-    mode = mode or "Normal"
+function M.update_mode(mode)
+    mode = mode or "NORMAL"
     local cwd = vim.fn.getcwd()
     cwd = cwd:gsub(vim.env.HOME, "~")
 
-    vim.wo[0].winbar = ("%%=%s: -- %s --%%="):format(cwd, mode)
+    local wc = api.nvim_win_get_config(0)
+    if not wc.split then
+        -- floating
+        vim.wo[0].winbar = ("%%=%s%%="):format(cwd)
+        api.nvim_win_set_config(0, {
+            title = { { (" -- %s -- "):format(mode), "DiredMode" } },
+        })
+    else
+        -- non floating
+        vim.wo[0].winbar = ("%%=%s: -- %s --%%="):format(cwd, mode)
+    end
 end
 
 ---@param dir string
@@ -105,18 +115,18 @@ function M.draw(dir, files)
             [mapping.tabe_prefix] = mapping.tabe,
         }) do
             vim.keymap.set("n", key, function()
-                M.update_winbar("Quick")
+                M.update_mode("QUICK")
                 vim.defer_fn(function()
                     local k = vim.fn.getchar(-1, { number = false })
                     for i, c in ipairs(hints) do
                         if i > #files then
-                            M.update_winbar()
+                            M.update_mode()
                             return
                         end
                         if c == k then
                             api.nvim_win_set_cursor(0, { i, 0 })
                             api.nvim_input(binding)
-                            M.update_winbar()
+                            M.update_mode()
                             return
                         end
                     end
@@ -144,7 +154,7 @@ function M.draw(dir, files)
     end
 
     vim.wo.statuscolumn = stc
-    M.update_winbar()
+    M.update_mode()
 
     -- delete first line
     api.nvim_buf_set_lines(0, 0, 1, true, {})

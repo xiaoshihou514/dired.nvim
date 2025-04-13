@@ -11,6 +11,10 @@ api.nvim_create_user_command("Dired", function(opts)
     require("dired").open(cwd)
 end, { nargs = "?" })
 
+api.nvim_create_user_command("TutorDired", function()
+    require("dired").tutor()
+end, { nargs = 0 })
+
 -- https://github.com/nvim-telescope/telescope-file-browser.nvim/blob/master/lua/telescope/_extensions/file_browser/config.lua#L73
 local netrw_bufname
 api.nvim_create_autocmd("BufEnter", {
@@ -51,8 +55,8 @@ local highlights = {
     DiredUser = { link = "Function" },
     DiredDate = { link = "Keyword" },
     DiredHints = { link = "Comment" },
+    DiredMode = { link = "ModeMsg" },
     -- DiredPrompt = { fg = "#a3be8c" },
-    -- DiredTitle = { link = "Function" },
     -- DiredMatch = { fg = "#268bd2", bold = true },
 }
 

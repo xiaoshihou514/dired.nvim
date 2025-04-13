@@ -98,15 +98,14 @@ function M.draw(dir, files)
             })
         end
 
-        for key, v in pairs({
-            [mapping.edit_prefix] = { mapping.edit, "Quick-Edit" },
-            [mapping.split_prefix] = { mapping.split, "Quick-Split" },
-            [mapping.vsplit_prefix] = { mapping.vsplit, "Quick-Vsplit" },
-            [mapping.tabe_prefix] = { mapping.tabe, "Quick-Tabedit" },
+        for key, binding in pairs({
+            [mapping.edit_prefix] = mapping.edit,
+            [mapping.split_prefix] = mapping.split,
+            [mapping.vsplit_prefix] = mapping.vsplit,
+            [mapping.tabe_prefix] = mapping.tabe,
         }) do
-            local binding, desc = unpack(v)
             vim.keymap.set("n", key, function()
-                M.update_winbar(desc)
+                M.update_winbar("Quick")
                 vim.defer_fn(function()
                     local k = vim.fn.getchar(-1, { number = false })
                     for i, c in ipairs(hints) do

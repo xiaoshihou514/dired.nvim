@@ -125,4 +125,11 @@ function M.imm_subpath(name)
     return name:sub(1, (name:find(sep) or -2) + 1)
 end
 
+---@param dir string
+---@param from string
+---@param to string
+function M.rename(dir, from, to)
+    uv.fs_rename(M.concat(dir, from), M.concat(dir, to))
+end
+
 return M

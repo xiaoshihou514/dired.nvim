@@ -48,6 +48,14 @@ local function open(file)
     end
 end
 
+local function exit_limited_insert_mode()
+    for _, k in ipairs(create_file_disabled_keys) do
+        enable("i", k)
+    end
+    render.update_winbar()
+    api.nvim_input("<Esc>")
+end
+
 local function create_file()
     local line = getline()
     if line == "" then
@@ -74,22 +82,63 @@ local function create_file()
         end
     end, 10)
 
-    for _, k in ipairs(create_file_disabled_keys) do
-        enable("i", k)
+    exit_limited_insert_mode()
+end
+
+---@param from string
+---@return fun()
+local function rename_file(from)
+    return function()
+        local line = getline()
+        if line == "" then
+            local row, _ = unpack(api.nvim_win_get_cursor(0))
+            api.nvim_buf_set_lines(0, row - 1, row, true, { from })
+            render.update_winbar()
+            return
+        end
+
+        local dir = vim.fn.getcwd()
+        fs.rename(dir, from, line)
+        exit_limited_insert_mode()
     end
-    render.update_winbar()
-    api.nvim_input("<Esc>")
+end
+
+local function prepare_limited_insert_mode(cb)
+    autocmd("ModeChanged", {
+        pattern = "*:n",
+        once = true,
+        callback = cb,
+    })
+    map("i", "<cr>", "<Esc>")
+
+    local function wrap(key)
+        return function()
+            local _, col = unpack(api.nvim_win_get_cursor(0))
+            if col == 0 then
+                return ""
+            else
+                return key
+            end
+        end
+    end
+    for _, k in ipairs({ "<BS>", "<C-h>", "<C-w>" }) do
+        map("i", k, wrap(k), { expr = true })
+    end
+
+    for _, k in ipairs(create_file_disabled_keys) do
+        disable("i", k)
+    end
 end
 
 function M.create_bindings()
-    map("n", "q", vim.cmd.quit)
-    M.create_nav_bindings()
-    M.create_edit_bindings()
+    local mapping = util.getopt("mapping")
+    map("n", mapping.quit, vim.cmd.quit)
+
+    M.create_nav_bindings(mapping)
+    M.create_edit_bindings(mapping)
 end
 
-function M.create_nav_bindings()
-    local mapping = util.getopt("mapping")
-
+function M.create_nav_bindings(mapping)
     -- navigation bindings
     map("n", mapping.edit, function()
         local entry = fs.concat(vim.fn.getcwd(), getline())
@@ -126,54 +175,38 @@ function M.create_nav_bindings()
         end
     end)
 
-    map("n", "-", function()
+    map("n", mapping.create, function()
         vim.cmd.lcd("..")
         require("dired").refresh()
     end)
 end
 
-function M.create_edit_bindings()
+function M.create_edit_bindings(mapping)
     local disabled = { "i", "a", "A", "s", "S", "R", "O" }
     for _, k in ipairs(disabled) do
         disable("n", k)
     end
 
-    map("n", "o", function()
+    map("n", mapping.create, function()
         local row, _ = unpack(api.nvim_win_get_cursor(0))
         for _, v in pairs(render_data) do
             table.insert(v, row + 1, "")
         end
 
-        autocmd("ModeChanged", {
-            pattern = "i:*",
-            once = true,
-            callback = create_file,
-        })
-        map("i", "<cr>", "<Esc>")
-
-        local function wrap(key)
-            return function()
-                local _, col = unpack(api.nvim_win_get_cursor(0))
-                if col == 0 then
-                    return ""
-                else
-                    return key
-                end
-            end
-        end
-        for _, k in ipairs({ "<BS>", "<C-h>", "<C-w>" }) do
-            map("i", k, wrap(k), { expr = true })
-        end
-
-        for _, k in ipairs(create_file_disabled_keys) do
-            disable("i", k)
-        end
+        prepare_limited_insert_mode(create_file)
 
         render.update_winbar("Insert")
         return "o"
     end, { expr = true })
 
-    -- rename, select, move, delete, paste
+    map("n", mapping.rename, function()
+        prepare_limited_insert_mode(rename_file(getline()))
+
+        render.update_winbar("Rename")
+        return "0v$h<C-g>"
+    end, { expr = true })
+
+    -- select, move, delete, paste
 end
 
 return M

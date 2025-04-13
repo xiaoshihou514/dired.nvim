@@ -6,15 +6,20 @@ function M.getopt(opt)
         info = { "permissions", "size", "user", "mtime" },
         binfts = { "pdf", "mp4", "mkv", "png", "svg" },
         mapping = {
+            quit = "q",
+            up = "-",
             edit = "<cr>",
             split = "<C-o>",
             vsplit = "<C-x>",
             tabe = "<C-t>",
 
-            edit_prefix = "g",
+            edit_prefix = "ge",
             split_prefix = "gs",
             vsplit_prefix = "gv",
             tabe_prefix = "gt",
+
+            create = "o",
+            rename = "r",
         },
     }
     if

@@ -82,7 +82,7 @@ end
 
 local function exit_limited_insert_mode()
     for _, k in ipairs(create_file_disabled_keys) do
-        enable("i", k)
+        pcall(enable, "i", k)
     end
     render.update_mode()
     pcall(vim.cmd, "stopinsert")
@@ -91,7 +91,6 @@ end
 local function create_file()
     local line = getline()
     if line == "" then
-        -- restore prev data
         local row, _ = unpack(api.nvim_win_get_cursor(0))
         api.nvim_buf_set_lines(0, row - 1, row, true, {})
         for _, v in pairs(render_data) do
@@ -102,7 +101,6 @@ local function create_file()
     end
 
     fs.create(line)
-    -- HACK
     vim.defer_fn(function()
         if vim.bo.ft ~= "dired" then
             return
@@ -115,8 +113,6 @@ local function create_file()
             end
         end
     end, 10)
-
-    exit_limited_insert_mode()
 end
 
 ---@param from string
@@ -133,17 +129,14 @@ local function rename_file(from)
 
         local dir = vim.fn.getcwd()
         fs.rename(dir, from, line)
-        exit_limited_insert_mode()
     end
 end
 
 local function prepare_limited_insert_mode(cb)
-    autocmd("ModeChanged", {
-        pattern = "*:n",
-        once = true,
-        callback = cb,
-    })
-    map("i", "<cr>", "<Esc>")
+    map("i", "<CR>", function()
+        exit_limited_insert_mode()
+        cb()
+    end)
 
     local function wrap(key)
         return function()
@@ -177,9 +170,7 @@ function M.create_bindings()
     local mapping = util.getopt("mapping")
     map("n", mapping.quit, vim.cmd.quit)
     map("n", "<Esc>", vim.cmd.quit)
-    map("i", "<Esc>", function()
-        vim.cmd.quit()
-    end)
+    map("i", "<Esc>", exit_limited_insert_mode)
 
     M.create_nav_bindings(mapping)
     M.create_edit_bindings(mapping)

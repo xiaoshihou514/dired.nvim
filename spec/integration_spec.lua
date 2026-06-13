@@ -185,7 +185,73 @@ describe("dired", function()
         end)
     end)
 
-    describe("render", function()
+    describe("operations", function()
+    it("delete via M.system refreshes buffer without corrupting others", function()
+        local dired = require("dired")
+        local fs = require("dired.fs")
+        local render = require("dired.render")
+
+        -- create a regular file buffer
+        local file_buf = api.nvim_create_buf(false, true)
+        api.nvim_buf_set_lines(file_buf, 0, -1, false, {
+            "line one",
+            "line two",
+            "line three",
+        })
+        api.nvim_set_current_buf(file_buf)
+        local file_content_before = api.nvim_buf_get_lines(file_buf, 0, -1, false)
+
+        -- create a dired buffer (as a floating window)
+        cd_test_dir()
+        local dired_buf = api.nvim_create_buf(false, true)
+        local dired_win = api.nvim_open_win(dired_buf, true, {
+            relative = "editor",
+            row = 0, col = 0,
+            height = 10, width = 40,
+        })
+        vim.bo.ft = "dired"
+        local entries = fs.list(test_dir)
+        render.draw(test_dir, entries)
+
+        -- select and delete a.txt
+        local path = join(test_dir, "a.txt")
+        vim.g._dired_selected = { [path] = true }
+        local cwd = vim.fn.getcwd()
+        local view = api.nvim_win_call(0, vim.fn.winsaveview)
+        dired.system({ "/bin/rm", "-rf", path }, cwd, view, "Deletion failed")
+        vim.g._dired_selected = {}
+
+        -- wait for rm to complete
+        vim.wait(2000, function() return uv.fs_stat(path) == nil end)
+        same(nil, uv.fs_stat(path))
+
+        -- wait for M.refresh callback to fire (dired buffer should update)
+        vim.wait(2000, function()
+            for _, l in ipairs(api.nvim_buf_get_lines(dired_buf, 0, -1, false)) do
+                if l == "a.txt" then
+                    return false
+                end
+            end
+            return true
+        end)
+
+        -- dired window still open
+        same(dired_win, api.nvim_get_current_win())
+
+        -- dired content no longer has a.txt
+        local lines = api.nvim_buf_get_lines(dired_buf, 0, -1, false)
+        for _, line in ipairs(lines) do
+            assert.are_not_equal("a.txt", line)
+        end
+
+        -- close dired, check file buffer
+        api.nvim_win_close(dired_win, true)
+        api.nvim_set_current_buf(file_buf)
+        same(file_content_before, api.nvim_buf_get_lines(file_buf, 0, -1, false))
+    end)
+end)
+
+describe("render", function()
         it("draws files into buffer with correct order", function()
             local render = require("dired.render")
             local fs = require("dired.fs")

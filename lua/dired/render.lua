@@ -98,7 +98,7 @@ function M.draw(dir, files)
 
         -- selection indicator
         local path = vim.fs.joinpath(cwd, shown)
-        if vim.fn.index(vim.g._dired_selected or {}, path) >= 0 then
+        if vim.g._dired_selected and vim.g._dired_selected[path] then
             -- selected
             M.extmark(line, 0, {
                 end_col = #shown,

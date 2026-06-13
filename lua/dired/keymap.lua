@@ -1,13 +1,16 @@
 local M = {}
+
 local api = vim.api
 local fs = require("dired.fs")
 local util = require("dired.util")
 local render = require("dired.render")
 local render_data = render.info_providers_data
 local getline = api.nvim_get_current_line
+local getcwd = vim.fn.getcwd
 local autocmd = api.nvim_create_autocmd
 local join = vim.fs.joinpath
 local refresh = require("dired").refresh
+local dired_system = require("dired").system
 
 -- stylua: ignore start
 local create_file_disabled_keys = {
@@ -159,9 +162,22 @@ local function prepare_limited_insert_mode(cb)
     end
 end
 
+local function ask(prompt, cb)
+    vim.ui.input({ prompt = prompt }, function(confirm)
+        if confirm ~= "y" then
+            return
+        end
+        cb()
+    end)
+end
+
 function M.create_bindings()
     local mapping = util.getopt("mapping")
     map("n", mapping.quit, vim.cmd.quit)
+    map("n", "<Esc>", vim.cmd.quit)
+    map("i", "<Esc>", function()
+        vim.cmd.quit()
+    end)
 
     M.create_nav_bindings(mapping)
     M.create_edit_bindings(mapping)
@@ -279,7 +295,124 @@ function M.create_edit_bindings(mapping)
         vim.g._dired_selected = t
     end)
 
-    -- move, delete, paste
+    -- move
+    map("n", mapping.move, function()
+        local cwd = getcwd()
+        local view = api.nvim_win_call(0, vim.fn.winsaveview)
+        local selected = vim.g._dired_selected or {}
+        local paths = vim.tbl_keys(selected)
+        if #paths == 0 then
+            return
+        end
+        for _, f in ipairs(paths) do
+            local to = join(cwd, vim.fn.fnamemodify(f, ":t"))
+            if vim.uv.fs_stat(to) then
+                ask('Overwrite "' .. to .. '"?', function()
+                    dired_system(
+                        { "/bin/mv", f, to },
+                        cwd,
+                        view,
+                        ("Move failed: mv %s %s"):format(f, to)
+                    )
+                end)
+            else
+                dired_system(
+                    { "/bin/mv", f, to },
+                    cwd,
+                    view,
+                    ("Move failed: mv %s %s"):format(f, to)
+                )
+            end
+        end
+        vim.g._dired_selected = {}
+    end)
+
+    -- delete
+    map("n", mapping.delete, function()
+        local cwd = getcwd()
+        local view = api.nvim_win_call(0, vim.fn.winsaveview)
+        local selected = vim.g._dired_selected or {}
+        local paths = vim.tbl_keys(selected)
+        if #paths == 0 then
+            return
+        end
+        local tostr = table.concat(paths, ", ")
+        ask("Remove " .. tostr .. "?", function()
+            dired_system(
+                vim.list_extend({ "/bin/rm", "-rf" }, paths),
+                cwd,
+                view,
+                ("Deletion failed: rm -rf %s"):format(tostr)
+            )
+            vim.g._dired_selected = {}
+        end)
+    end)
+
+    -- paste (copy)
+    map("n", mapping.paste, function()
+        local cwd = getcwd()
+        local view = api.nvim_win_call(0, vim.fn.winsaveview)
+        local selected = vim.g._dired_selected or {}
+        local paths = vim.tbl_keys(selected)
+        if #paths == 0 then
+            return
+        end
+        for _, f in ipairs(paths) do
+            local to = join(cwd, vim.fn.fnamemodify(f, ":t"))
+            if vim.uv.fs_stat(to) then
+                ask('Overwrite "' .. to .. '"?', function()
+                    dired_system(
+                        { "/bin/cp", "-rf", f, to },
+                        cwd,
+                        view,
+                        ("Copy failed: cp %s %s"):format(f, to)
+                    )
+                end)
+            else
+                dired_system(
+                    { "/bin/cp", "-rf", f, to },
+                    cwd,
+                    view,
+                    ("Copy failed: cp %s %s"):format(f, to)
+                )
+            end
+        end
+        vim.g._dired_selected = {}
+    end)
+
+    -- go to last entry
+    map("n", mapping.goto_end, function()
+        api.nvim_feedkeys("gg", "n", false)
+        local count = 0
+        for _, l in ipairs(api.nvim_buf_get_lines(0, 0, -1, false)) do
+            if l == "" then
+                break
+            end
+            count = count + 1
+        end
+        api.nvim_feedkeys(count - 1 .. "gj", "n", false)
+    end)
+
+    -- search
+    map("n", mapping.search, function()
+        local target = getcwd()
+        vim.cmd.quit()
+        local save = getcwd()
+        vim.cmd.lcd(target)
+        vim.cmd("Fzf files-cwd")
+        vim.cmd.lcd(save)
+    end)
+
+    -- open in OS
+    map("n", mapping.open_os, function()
+        vim.system({ "xdg-open", getcwd() })
+    end)
+
+    -- toggle hidden
+    map("n", mapping.toggle_hidden, function()
+        vim.g._dired_show_hidden = not vim.g._dired_show_hidden
+        refresh()
+    end)
 end
 
 return M

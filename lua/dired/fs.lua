@@ -35,11 +35,14 @@ function M.list(dir)
     local fd = assert(uv.fs_scandir(dir))
     local name, type = uv.fs_scandir_next(fd)
     local result = {}
+    local show_hidden = vim.g._dired_show_hidden
     while name ~= nil do
-        table.insert(result, {
-            name = name,
-            type = type,
-        })
+        if show_hidden or name:sub(1, 1) ~= "." then
+            table.insert(result, {
+                name = name,
+                type = type,
+            })
+        end
         name, type = uv.fs_scandir_next(fd)
     end
 
@@ -112,6 +115,13 @@ function M.create(name)
     if file ~= "" then
         create_file(join(dir, name))
     end
+end
+
+---@param dir string
+---@param name string
+---@return table|nil
+function M.stat(dir, name)
+    return uv.fs_stat(join(dir, name))
 end
 
 ---@param name string

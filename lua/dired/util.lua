@@ -21,6 +21,13 @@ function M.getopt(opt)
             create = "o",
             rename = "r",
             select = " ",
+            move = "m",
+            delete = "d",
+            paste = "p",
+            goto_end = "G",
+            search = "/",
+            open_os = "O",
+            toggle_hidden = "H",
         },
     }
     if

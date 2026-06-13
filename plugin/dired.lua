@@ -6,6 +6,9 @@ loaded = true
 
 local api, fn = vim.api, vim.fn
 
+vim.g._dired_show_hidden = vim.g._dired_show_hidden or false
+vim.g._dired_selected = vim.g._dired_selected or {}
+
 api.nvim_create_user_command("Dired", function(opts)
     local cwd = opts.fargs[1] and fn.expand(opts.fargs[1]) or fn.getcwd()
     require("dired").open(cwd)

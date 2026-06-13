@@ -199,24 +199,27 @@ function M.create_nav_bindings(mapping)
     map("n", mapping.vsplit, function()
         local line = getline()
         if not isdir(line) then
+            local entry = join(getcwd(), line)
             api.nvim_win_close(0, true)
-            vim.cmd.vsplit(line)
+            vim.cmd.vsplit(entry)
         end
     end)
 
     map("n", mapping.split, function()
         local line = getline()
         if not isdir(line) then
+            local entry = join(getcwd(), line)
             api.nvim_win_close(0, true)
-            vim.cmd.split(line)
+            vim.cmd.split(entry)
         end
     end)
 
     map("n", mapping.tabe, function()
         local line = getline()
         if not isdir(line) then
+            local entry = join(getcwd(), line)
             api.nvim_win_close(0, true)
-            vim.cmd.tabedit(line)
+            vim.cmd.tabedit(entry)
         end
     end)
 

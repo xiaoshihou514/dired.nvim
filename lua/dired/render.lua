@@ -71,7 +71,8 @@ function M.draw(dir, files)
         M.info_providers_data[provider] = { len = 0 }
     end
 
-    for line, f in ipairs(files) do
+    for idx, f in ipairs(files) do
+        local line = idx - 1
         local shown = f.type == "directory" and f.name .. "/" or f.name
         api.nvim_buf_set_lines(0, line, line, true, { shown })
 
@@ -118,7 +119,7 @@ function M.draw(dir, files)
     -- create quick keymaps if all entries are within viewport
     if #files < api.nvim_win_get_height(0) and #files < #hints then
         for i = 1, #files do
-            M.extmark(i, 0, {
+            M.extmark(i - 1, 0, {
                 virt_text_pos = "right_align",
                 virt_text = { { "[" .. hints[i] .. "]", "DiredHints" } },
             })
@@ -168,9 +169,6 @@ function M.draw(dir, files)
                 provider
             )
     end
-
-    -- delete first line to account for off by 1 error
-    api.nvim_buf_set_lines(0, 0, 1, true, {})
 
     -- hook up info status, winbar and title
     vim.wo.statuscolumn = stc

@@ -18,10 +18,10 @@ end
 
 ---@param cmd string[]
 ---@param cwd string
----@param view table
+---@param _view table
 ---@param errormsg string
 ---@param on_success fun()?
-function M.system(cmd, cwd, view, errormsg, on_success)
+function M.system(cmd, cwd, _view, errormsg, on_success)
     vim.system(
         cmd,
         { cwd = cwd },
@@ -33,9 +33,6 @@ function M.system(cmd, cwd, view, errormsg, on_success)
                 on_success()
             end
             M.refresh()
-            vim.defer_fn(function()
-                vim.fn.winrestview(view)
-            end, 10)
         end)
     )
 end

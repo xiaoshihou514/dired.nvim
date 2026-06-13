@@ -39,16 +39,16 @@ local function friendly_time(timestamp)
     local now = os.time()
     local diff = now - timestamp
     if diff < 60 then
-        return string.format("%d secs ago", diff)
+        return string.format("%d秒前", diff)
     elseif diff < 3600 then
-        return string.format("%d mins ago", math.floor(diff / 60))
+        return string.format("%d分钟前", math.floor(diff / 60))
     elseif diff < 86400 then
-        return string.format("%d hours ago", math.floor(diff / 3600))
-    elseif diff < 86400 * 14 then -- two weeks show "X days ago"
-        return string.format("%d days ago", math.floor(diff / 86400))
+        return string.format("%d小时前", math.floor(diff / 3600))
+    elseif diff < 86400 * 14 then
+        return string.format("%d天前", math.floor(diff / 86400))
     else
         ---@type string
-        return os.date("%Y-%-m-%-d", timestamp)
+        return os.date("%Y年%m月%d日", timestamp)
     end
 end
 

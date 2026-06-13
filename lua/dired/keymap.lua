@@ -85,9 +85,7 @@ local function exit_limited_insert_mode()
         enable("i", k)
     end
     render.update_mode()
-    if vim.fn.mode() == "i" then
-        api.nvim_input("<Esc>")
-    end
+    pcall(vim.cmd, "stopinsert")
 end
 
 local function create_file()
@@ -106,12 +104,14 @@ local function create_file()
     fs.create(line)
     -- HACK
     vim.defer_fn(function()
+        if vim.bo.ft ~= "dired" then
+            return
+        end
         refresh()
-        -- put cursor on newly created entry
         for lnum, l in ipairs(api.nvim_buf_get_lines(0, 0, -1, false)) do
             if l == fs.imm_subpath(line) then
                 api.nvim_win_set_cursor(0, { lnum, 0 })
-                api.nvim_input("zz")
+                pcall(vim.cmd, "normal! zz")
             end
         end
     end, 10)
@@ -245,7 +245,9 @@ function M.create_edit_bindings(mapping)
         prepare_limited_insert_mode(create_file)
 
         render.update_mode("INSERT")
-        api.nvim_feedkeys("o", "n", false)
+        api.nvim_buf_set_lines(0, row, row, false, { "" })
+        api.nvim_win_set_cursor(0, { row + 1, 0 })
+        vim.cmd("startinsert!")
     end)
 
     map("n", mapping.rename, function()

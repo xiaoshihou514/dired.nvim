@@ -328,7 +328,6 @@ function M.create_edit_bindings(mapping)
     -- delete
     map("n", mapping.delete, function()
         local cwd = getcwd()
-        local view = api.nvim_win_call(0, vim.fn.winsaveview)
         local selected = vim.g._dired_selected or {}
         local paths = vim.tbl_keys(selected)
         if #paths == 0 then
@@ -336,12 +335,7 @@ function M.create_edit_bindings(mapping)
         end
         local tostr = table.concat(paths, ", ")
         ask("Remove " .. tostr .. "?", function()
-            dired_system(
-                vim.list_extend({ "/bin/rm", "-rf" }, paths),
-                cwd,
-                view,
-                ("Deletion failed: rm -rf %s"):format(tostr)
-            )
+            fs.remove(paths, cwd, refresh)
             vim.g._dired_selected = {}
         end)
     end)

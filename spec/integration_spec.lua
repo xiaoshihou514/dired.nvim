@@ -217,9 +217,16 @@ describe("dired", function()
         local path = join(test_dir, "a.txt")
         vim.g._dired_selected = { [path] = true }
         local cwd = vim.fn.getcwd()
-        local view = api.nvim_win_call(0, vim.fn.winsaveview)
-        dired.system({ "/bin/rm", "-rf", path }, cwd, view, "Deletion failed")
+        local deleted = false
+        fs.remove({ path }, cwd, function()
+            deleted = true
+            dired.refresh()
+        end)
         vim.g._dired_selected = {}
+        vim.wait(2000, function()
+            return deleted
+        end)
+        vim.wait(100)
 
         -- wait for rm to complete
         vim.wait(2000, function() return uv.fs_stat(path) == nil end)

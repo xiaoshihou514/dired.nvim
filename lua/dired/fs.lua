@@ -135,4 +135,43 @@ function M.rename(dir, from, to)
     uv.fs_rename(join(dir, from), join(dir, to))
 end
 
+---@param paths string[]  absolute paths
+---@param cwd string
+---@param on_done fun()?
+function M.remove(paths, cwd, on_done)
+    local session = (vim.env.DESKTOP_SESSION or ""):match("([^/%.]+)") or ""
+    local function done()
+        if on_done then
+            on_done()
+        end
+    end
+    if session:find("plasma") then
+        local pending = #paths
+        if pending == 0 then
+            done()
+            return
+        end
+        for _, p in ipairs(paths) do
+            vim.system(
+                { "kioclient", "move", "file://" .. p, "trash:/" },
+                { cwd = cwd },
+                vim.schedule_wrap(function()
+                    pending = pending - 1
+                    if pending == 0 then
+                        done()
+                    end
+                end)
+            )
+        end
+    else
+        vim.system(
+            vim.list_extend({ "/bin/rm", "-rf" }, paths),
+            { cwd = cwd },
+            vim.schedule_wrap(function()
+                done()
+            end)
+        )
+    end
+end
+
 return M

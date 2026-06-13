@@ -61,6 +61,9 @@ function M.tutor()
 end
 
 function M.refresh()
+    if vim.bo.ft ~= "dired" then
+        return
+    end
     local dir = vim.fn.getcwd()
     local view = api.nvim_win_call(0, vim.fn.winsaveview)
     set_buffer_options()

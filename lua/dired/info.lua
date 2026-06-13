@@ -52,32 +52,27 @@ local function friendly_time(timestamp)
     end
 end
 
-local function format_perms(mode)
-    local function format_perm(r, w, x)
-        return table.concat({
-            bit.band(mode, r) ~= 0 and "r" or "-",
-            bit.band(mode, w) ~= 0 and "w" or "-",
-            bit.band(mode, x) ~= 0 and "x" or "-",
-        })
-    end
-
+local function format_user_perms(mode)
     return table.concat({
-        format_perm(0x100, 0x080, 0x040),
-        format_perm(0x020, 0x010, 0x008),
-        format_perm(0x004, 0x002, 0x001),
+        bit.band(mode, 0x100) ~= 0 and "r" or "-",
+        bit.band(mode, 0x080) ~= 0 and "w" or "-",
+        bit.band(mode, 0x040) ~= 0 and "x" or "-",
     })
 end
 
 M.permissions = {
     hlgroup = "DiredPermissions",
     show = function(dir, fname)
-        return (vim.endswith(fname, "/") and "d" or ".") .. format_perms(fs.perms(dir, fname))
+        return (vim.endswith(fname, "/") and "d" or ".") .. format_user_perms(fs.perms(dir, fname))
     end,
 }
 
 M.size = {
     hlgroup = "DiredSize",
     show = function(dir, fname)
+        if vim.endswith(fname, "/") then
+            return ""
+        end
         return format_size(fs.size(dir, fname))
     end,
 }

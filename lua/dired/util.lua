@@ -3,7 +3,7 @@ local M = {}
 ---@param opt string
 function M.getopt(opt)
     local default = {
-        info = { "permissions", "size", "user", "mtime" },
+        info = { "permissions", "size", "mtime" },
         binfts = { "pdf", "mp4", "mkv", "png", "svg" },
         mapping = {
             quit = "q",

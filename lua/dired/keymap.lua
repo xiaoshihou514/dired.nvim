@@ -19,7 +19,7 @@ local create_file_disabled_keys = {
 }
 local normal_disabled = {
     "i", "a", "A", "s", "S", "R", "O",
-    "r", "o", "<C-a>", "<C-x>", "u"
+    "r", "o", "<C-a>", "u"
 }
 -- stylua: ignore end
 

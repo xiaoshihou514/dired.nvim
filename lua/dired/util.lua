@@ -15,7 +15,7 @@ function M.getopt(opt)
 
             create = "c",
             rename = "r",
-            select = " ",
+            select = "<Tab>",
             move = "m",
             delete = "d",
             paste = "p",

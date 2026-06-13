@@ -57,7 +57,6 @@ local highlights = {
     DiredSize = { link = "String" },
     DiredUser = { link = "Function" },
     DiredDate = { link = "Keyword" },
-    DiredHints = { link = "Comment" },
     DiredMode = { link = "ModeMsg" },
     DiredSelected = { link = "Visual" },
 }

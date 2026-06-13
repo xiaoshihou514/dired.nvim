@@ -13,12 +13,7 @@ function M.getopt(opt)
             vsplit = "<C-x>",
             tabe = "<C-t>",
 
-            edit_prefix = "ge",
-            split_prefix = "gs",
-            vsplit_prefix = "gv",
-            tabe_prefix = "gt",
-
-            create = "o",
+            create = "c",
             rename = "r",
             select = " ",
             move = "m",

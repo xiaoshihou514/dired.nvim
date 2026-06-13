@@ -11,14 +11,6 @@ local fs = require("dired.fs")
 local util = require("dired.util")
 local info = require("dired.info")
 
--- stylua: ignore start
-local hints = {
-    "a", "s", "d", "f", "g", "h", "j", "k", "l", ";", "'", "q", "w",
-    "e", "r", "t", "z", "x", "c", "v", "y", "u", "i", "o", "p", "b",
-    "n", "m",
-}
--- stylua: ignore end
-
 ---@param str string
 ---@param len number
 ---@return string
@@ -56,7 +48,6 @@ end
 ---@param dir string
 ---@param files FileEntry[]
 function M.draw(dir, files)
-    local mapping = util.getopt("mapping")
     local cwd = vim.fn.getcwd()
 
     -- clear buffer
@@ -113,42 +104,6 @@ function M.draw(dir, files)
             table.insert(M.info_providers_data[provider], data)
             M.info_providers_data[provider].len =
                 math.max(M.info_providers_data[provider].len, #data)
-        end
-    end
-
-    -- create quick keymaps if all entries are within viewport
-    if #files < api.nvim_win_get_height(0) and #files < #hints then
-        for i = 1, #files do
-            M.extmark(i - 1, 0, {
-                virt_text_pos = "right_align",
-                virt_text = { { "[" .. hints[i] .. "]", "DiredHints" } },
-            })
-        end
-
-        for key, binding in pairs({
-            [mapping.edit_prefix] = mapping.edit,
-            [mapping.split_prefix] = mapping.split,
-            [mapping.vsplit_prefix] = mapping.vsplit,
-            [mapping.tabe_prefix] = mapping.tabe,
-        }) do
-            vim.keymap.set("n", key, function()
-                M.update_mode("QUICK")
-                vim.defer_fn(function()
-                    local k = vim.fn.getchar(-1, { number = false })
-                    for i, c in ipairs(hints) do
-                        if i > #files then
-                            M.update_mode()
-                            return
-                        end
-                        if c == k then
-                            api.nvim_win_set_cursor(0, { i, 0 })
-                            api.nvim_input(binding)
-                            M.update_mode()
-                            return
-                        end
-                    end
-                end, 10)
-            end, { buffer = true })
         end
     end
 

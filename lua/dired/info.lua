@@ -48,7 +48,7 @@ local function friendly_time(timestamp)
         return string.format("%d天前", math.floor(diff / 86400))
     else
         ---@type string
-        return os.date("%Y年%m月%d日", timestamp)
+        return os.date("%Y年%-m月%-d日", timestamp)
     end
 end
 

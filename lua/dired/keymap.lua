@@ -85,7 +85,9 @@ local function exit_limited_insert_mode()
         enable("i", k)
     end
     render.update_mode()
-    api.nvim_input("<Esc>")
+    if vim.fn.mode() == "i" then
+        api.nvim_input("<Esc>")
+    end
 end
 
 local function create_file()
@@ -243,8 +245,8 @@ function M.create_edit_bindings(mapping)
         prepare_limited_insert_mode(create_file)
 
         render.update_mode("INSERT")
-        return "o"
-    end, { expr = true })
+        api.nvim_feedkeys("o", "n", false)
+    end)
 
     map("n", mapping.rename, function()
         prepare_limited_insert_mode(rename_file(getline()))

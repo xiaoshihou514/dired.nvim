@@ -62,10 +62,16 @@ function M.draw(dir, files)
         M.info_providers_data[provider] = { len = 0 }
     end
 
+    local lines = {}
+    for idx, f in ipairs(files) do
+        local shown = f.type == "directory" and f.name .. "/" or f.name
+        lines[idx] = shown
+    end
+    api.nvim_buf_set_lines(0, 0, -1, false, lines)
+
     for idx, f in ipairs(files) do
         local line = idx - 1
-        local shown = f.type == "directory" and f.name .. "/" or f.name
-        api.nvim_buf_set_lines(0, line, line, true, { shown })
+        local shown = lines[idx]
 
         if f.type == "directory" then
             -- apply directory highlight

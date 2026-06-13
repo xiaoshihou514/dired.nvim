@@ -22,11 +22,10 @@ local join = vim.fs.joinpath
 local sep = uv.os_uname().sysname == "Windows" and "\\" or "/"
 
 local function create_file(fname)
-    uv.fs_open(fname, "w", 420, function(_, fd)
-        if fd then
-            uv.fs_close(fd, function() end)
-        end
-    end)
+    local fd = uv.fs_open(fname, "w", 420)
+    if fd then
+        uv.fs_close(fd)
+    end
 end
 
 ---@param dir string

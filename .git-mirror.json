@@ -1,0 +1,26 @@
+[
+  {
+    "name": "codeberg",
+    "url": "ssh://git@codeberg.org/xiaoshihou/dired.nvim.git"
+  },
+  {
+    "name": "disroot",
+    "url": "ssh://git@git.disroot.org/xiaoshihou/dired.nvim.git"
+  },
+  {
+    "name": "sourcehut",
+    "url": "git@git.sr.ht:~xiaoshihou/dired.nvim"
+  },
+  {
+    "name": "gitlab",
+    "url": "git@gitlab.com:xiaoshihou/dired.nvim.git"
+  },
+  {
+    "name": "gitgud",
+    "url": "git@gitgud.io:xiaoshihou514/dired.nvim.git"
+  },
+  {
+    "name": "frama",
+    "url": "git@framagit.org:xiaoshihou/dired.nvim.git"
+  }
+]
